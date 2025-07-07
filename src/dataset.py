@@ -12,35 +12,39 @@ NUM_FREQ_BINS = 128
 
 train_us_dataset = load_dataset("danavery/urbansound8K", split="train")
 
+def create_mel_spec_from_audio(data, show_spectrogram=False):
+    """
+    Create a mel spectrogram from audio data.
+    """
+    audio_data = data['audio']
+    waveform = audio_data['array']
+    sampling_rate = audio_data['sampling_rate']
+
+    mel_spectrogram = librosa.feature.melspectrogram(
+        y=waveform,
+        sr=sampling_rate,
+        n_mels=NUM_FREQ_BINS
+    )
+    log_mel_spectrogram = librosa.power_to_db(mel_spectrogram, ref=np.max)
+
+    # Plot and show one spectrogram image
+    if show_spectrogram:
+        plt.figure(figsize=(10, 4))
+        librosa.display.specshow(
+            log_mel_spectrogram,
+            sr=sampling_rate,
+            x_axis='time',
+            y_axis='mel'
+        )
+        plt.colorbar(format='%+2.0f dB')
+        plt.title('Log-Mel Spectrogram')
+        plt.tight_layout()
+        plt.show()
+        plt.close()
+    return log_mel_spectrogram
+
 example = train_us_dataset[0]
-
-audio_data = example['audio']
-waveform = audio_data['array']
-sampling_rate = audio_data['sampling_rate']
-
-# Create mel spectrogram
-mel_spectrogram = librosa.feature.melspectrogram(
-    y=waveform,
-    sr=sampling_rate,
-    n_mels=NUM_FREQ_BINS
-)
-
-log_mel_spectrogram = librosa.power_to_db(mel_spectrogram, ref=np.max)
-
-# Plot and save spectrogram image
-plt.figure(figsize=(10, 4))
-librosa.display.specshow(
-    log_mel_spectrogram,
-    sr=sampling_rate,
-    x_axis='time',
-    y_axis='mel'
-)
-plt.colorbar(format='%+2.0f dB')
-plt.title('Log-Mel Spectrogram')
-plt.tight_layout()
-plt.savefig("data/sample_spectrogram.png")
-plt.show()
-plt.close()
+create_mel_spec_from_audio(example, False)
 
 
 # samples = []
