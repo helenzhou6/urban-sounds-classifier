@@ -15,4 +15,5 @@ dependencies = [
     "soundfile>=0.13.1",
     "torch>=2.7.1",
     "tqdm>=4.67.1",
+    "wandb>=0.21.0",
 ]

@@ -8,6 +8,9 @@ import torch.optim as optim
 import torch.nn.functional as F
 from datasets import load_dataset
 from tqdm import tqdm
+from utils import get_device, init_wandb
+
+
 
 # --- LOADING THE DATASET AND NORMALISE AND PAD SPECTOGRAM ---
 def normalise_and_pad_spectrogram(spectrogram, min_value=-80, max_len=1501):
@@ -48,8 +51,12 @@ def train_one_epoch(model, dataloader, optimizer, device):
     running_loss = 0
     correct = 0
     total = 0
+    print(f"[DEBUG] Model device: {next(model.parameters()).device}")
+    
     for inputs, labels, fold in tqdm(dataloader, desc="Training", leave=False):
+        print(f"[DEBUG] Original inputs device: {inputs.device}, labels device: {labels.device}")
         inputs, labels = inputs.to(device), labels.to(device)
+        print(f"[DEBUG] After .to(device) - inputs device: {inputs.device}, labels device: {labels.device}")
 
         optimizer.zero_grad()
         outputs = model(inputs)
@@ -70,9 +77,13 @@ def evaluate(model, loader, device):
     model.eval()
     correct = 0
     total = 0
+    print(f"[DEBUG] Evaluation - Model device: {next(model.parameters()).device}")
+    
     with torch.no_grad():
         for inputs, labels, fold in loader:
+            print(f"[DEBUG] Evaluation - Original inputs device: {inputs.device}, labels device: {labels.device}")
             inputs, labels = inputs.to(device), labels.to(device)
+            print(f"[DEBUG] Evaluation - After .to(device) - inputs device: {inputs.device}, labels device: {labels.device}")
             outputs = model(inputs)
             _, predicted = torch.max(outputs, 1)
             correct += (predicted == labels).sum().item()
@@ -82,10 +93,10 @@ def evaluate(model, loader, device):
 NUM_FOLDS = 10
 NUM_CLASSES = 10
 EPOCHS = 10
-BATCH_SIZE = 32
+BATCH_SIZE = 32 * 8
 LR = 0.001
 
-def run_k_fold_training(dataset, num_folds=NUM_FOLDS, num_classes=NUM_CLASSES, epochs=EPOCHS, batch_size=BATCH_SIZE, device='cuda', fold_values=None):
+def run_k_fold_training(dataset, num_folds=NUM_FOLDS, num_classes=NUM_CLASSES, epochs=EPOCHS, batch_size=BATCH_SIZE, device='cuda', fold_values=None, wandb=None):
     fold_accuracies = []
 
     for test_fold in tqdm(range(1, 2), desc="K-Fold"):
@@ -102,19 +113,38 @@ def run_k_fold_training(dataset, num_folds=NUM_FOLDS, num_classes=NUM_CLASSES, e
 
         # Initialize model, optimizer
         model = SpectrogramCNN1D(num_classes=num_classes, input_dims=[128, 1501]).to(device)
+        print(f"[DEBUG] Fold {test_fold} - Model initialized on device: {next(model.parameters()).device}")
+        print(f"[DEBUG] Fold {test_fold} - Target device: {device}")
         optimizer = optim.Adam(model.parameters(), lr=LR)
 
         for epoch in tqdm(range(epochs), desc=f"Training Fold {test_fold}", leave=False):
             train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, device)
             print(f"Epoch {epoch+1} - Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
+            if wandb:
+                wandb.log({
+                    "epoch": epoch + 1,
+                    "train_loss": train_loss,
+                    "train_accuracy": train_acc,
+                    "fold": test_fold
+                })
 
-        Uncomment and implement evaluate if needed
+        # Uncomment and implement evaluate if needed
         test_acc = evaluate(model, test_loader, device)
         print(f"Test Accuracy fold {test_fold}: {test_acc:.4f}")
+        if wandb:
+            wandb.log({
+                "test_accuracy": test_acc,
+                "fold": test_fold
+            })
         fold_accuracies.append(test_acc)
 
     avg_acc = sum(fold_accuracies) / num_folds
     print(f"Average accuracy across {num_folds} folds: {avg_acc:.4f}")
+    if wandb:
+        wandb.log({
+            "average_accuracy": avg_acc,
+            "num_folds": num_folds
+        })  
     return fold_accuracies, avg_acc
 
 def main():
@@ -124,8 +154,17 @@ def main():
 
     dataset = AudioSpectrogramDataset(data['train'])
     # Assuming dataset is already preprocessed and contains mel spectrograms
+    device=get_device()
+    print(device)
+    wandb = init_wandb(config={
+        "num_folds": NUM_FOLDS,
+        "num_classes": NUM_CLASSES,
+        "epochs": EPOCHS,
+        "batch_size": BATCH_SIZE,
+        "device": device
+    })
 
-    run_k_fold_training(dataset, num_folds=NUM_FOLDS, num_classes=NUM_CLASSES, epochs=EPOCHS, batch_size=BATCH_SIZE, device='cuda' if torch.cuda.is_available() else 'cpu', fold_values=fold_values)
+    run_k_fold_training(dataset, num_folds=NUM_FOLDS, num_classes=NUM_CLASSES, epochs=EPOCHS, batch_size=BATCH_SIZE, device=device, fold_values=fold_values, wandb=wandb)
     
 
 if __name__ == "__main__":
