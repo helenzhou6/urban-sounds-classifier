@@ -12,3 +12,8 @@ See https://huggingface.co/datasets/danavery/urbansound8K which is based off htt
 - urban sounds from 10 classes (dataset.class): air_conditioner, car_horn, children_playing, dog_bark, drilling, enginge_idling, gun_shot, jackhammer, siren, and street_music
     - Also has classID that is 0 to 9 and maps to a class
 - Note: The docs mention not to shuffle, and also to "perform 10-fold cross validation using the provided folds and report the average score."
+
+## Running 
+1. Run `uv run src/dataset.py` or create the dataset
+- This will download the Urban Sounds 8k dataset, create a log mel spectogram and generate a new dataset that includes that (minus the audio, to make it smaller size).
+- This will upload to Hugging Face. You'll need to create a hugging face profile, create a new dataset, and then generate an Access Token (API key) with write permissions, and put `HF_TOKEN` in `.env`
