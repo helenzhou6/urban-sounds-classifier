@@ -1,4 +1,4 @@
-from datasets import load_dataset
+from datasets import load_dataset, HFDataset, DatasetDict
 import numpy as np
 import pickle
 import os
@@ -6,6 +6,13 @@ import librosa
 import librosa.display
 import matplotlib.pyplot as plt
 import numpy as np
+from huggingface_hub import login
+from dotenv import load_dotenv
+from tqdm import tqdm
+
+load_dotenv(override=True)
+
+hf_api_token = os.getenv("HF_API_TOKEN")
 
 NUM_SAMPLES = 100
 NUM_FREQ_BINS = 128
@@ -41,23 +48,33 @@ def create_mel_spec_from_audio(data, show_spectrogram=False):
         plt.tight_layout()
         plt.show()
         plt.close()
+
     return log_mel_spectrogram
 
-example = train_us_dataset[0]
-create_mel_spec_from_audio(example, False)
+us_with_spectrogram = []
+for sample_row in tqdm(train_us_dataset, desc="Processing samples"):
+    data = {
+        **{k: sample_row[k] for k in sample_row.keys() if k != "audio"},
+        "mel_spectrogram": create_mel_spec_from_audio(sample_row),
+    }
+    us_with_spectrogram.append(data)
 
+if not os.path.exists("data"):
+    os.makedirs("data")
 
-# samples = []
-# for sample_row in train_us_dataset.select(range(NUM_SAMPLES)):
-#     data = {
-#         "audio": np.array(sample_row["audio"]["array"]),
-#         "target_label": sample_row["class"]
-#     }
-#     samples.append(data)
+with open("data/urbansound_processed.pkl", "wb") as file:
+    pickle.dump(us_with_spectrogram, file)
 
-# if not os.path.exists("data"):
-#     os.makedirs("data")
+if not hf_api_token:
+    raise ValueError("Please set the HF_API_TOKEN environment variable.")
 
-# with open("data/urbansound_samples.pkl.gz", "wb") as file:
-#     pickle.dump(samples, file)
+login(token=hf_api_token)
+
+hf_train = HFDataset.from_list(us_with_spectrogram)
+
+dataset_dict = DatasetDict({
+    "train": hf_train,
+})
+
+dataset_dict.push_to_hub("EthanGLEdwards/urbansounds_melspectrograms")
 
