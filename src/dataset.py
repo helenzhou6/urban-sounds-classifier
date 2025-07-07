@@ -1,4 +1,5 @@
-from datasets import load_dataset, HFDataset, DatasetDict
+from datasets import Dataset as  HFDataset, DatasetDict
+from datasets import load_dataset
 import numpy as np
 import pickle
 import os
