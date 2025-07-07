@@ -15,7 +15,6 @@ load_dotenv(override=True)
 
 hf_api_token = os.getenv("HF_API_TOKEN")
 
-NUM_SAMPLES = 100
 NUM_FREQ_BINS = 128
 
 train_us_dataset = load_dataset("danavery/urbansound8K", split="train")
