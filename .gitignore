@@ -212,3 +212,6 @@ __marimo__/
 
 # wandb
 wandb/
+
+# DS_store
+.DS_Store
