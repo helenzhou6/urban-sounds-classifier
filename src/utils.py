@@ -10,10 +10,25 @@ def get_device():
     device = "cpu"
     if torch.cuda.is_available():
         device = "cuda"
+        # Print GPU info for debugging
+        print(f"GPU: {torch.cuda.get_device_name()}")
+        print(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f}GB")
     elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         device = "mps"
     print(f"Using device: {device}")
     return device
+
+def clear_gpu_cache():
+    """Clear GPU cache to free up memory."""
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+def print_gpu_memory():
+    """Print current GPU memory usage."""
+    if torch.cuda.is_available():
+        allocated = torch.cuda.memory_allocated() / 1e9
+        cached = torch.cuda.memory_reserved() / 1e9
+        print(f"GPU Memory - Allocated: {allocated:.2f}GB, Cached: {cached:.2f}GB")
 
 def init_wandb(config={}):
     default_config = {
