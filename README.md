@@ -1,5 +1,6 @@
 # urban-sounds-classifier
-Takes urban sounds and classifies them
+Takes urban sounds (8k dataset) and classifies them into 10 categories (dog barking etc)
+Has two models: CNN and Transformer Encoder from scratch
 
 ## Pre-requisities 
 - Python 3.10
@@ -32,6 +33,12 @@ See https://huggingface.co/datasets/danavery/urbansound8K which is based off htt
 - Linear layer to project to lower dimension
 4. **Classification layer**
 - Linear layer to project to number of classes (number of categories we are classifying to)
+
+## Transformer (encoder only) classifying model
+1. Run 02...py file to preprocess, save it and upload to hugging face
+2. Run 04... (03.. is for the test) that will run the Transformer Encoder
+- NB we've having memory issues
+
 
 ## Running .ipynb
 Install Jupyter VSCode plugin, and open the .ipynb and select Kernel to be the current .venv virtual environment. You can run each cell with control enter
